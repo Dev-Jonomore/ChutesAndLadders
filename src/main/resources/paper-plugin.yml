@@ -1,0 +1,10 @@
+name: ChutesAndLadders
+version: '${version}'
+main: mc.jonomore.chutes.ChutesPlugin
+description: Chutes and Ladders through find-the-button rooms
+api-version: '26.3'
+permissions:
+  chutes.play:
+    default: true
+  chutes.admin:
+    default: op

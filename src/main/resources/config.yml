@@ -1,0 +1,48 @@
+# Name of the dedicated void world the boards are built in.
+world: chutes_board
+
+board:
+  default-rooms: 50
+  max-roll: 6
+  # Every Nth room is a break room.
+  break-interval: 10
+  # Chutes cannot drop a pawn below the last break room it visited.
+  break-checkpoint: true
+  # The first rooms are never ladders or chutes.
+  safe-start: 3
+  # Fraction of rooms that are ladders / chutes.
+  ladder-density: 0.12
+  chute-density: 0.12
+  # Length of a ladder or chute, in rooms.
+  min-length: 3
+  max-length: 12
+  # Chance a transit challenge is a maze; otherwise it is waves.
+  maze-weight: 0.5
+
+scoring:
+  ladder-min-gain: 1
+  chute-min-regress: 1
+
+maze:
+  rooms-per-floor: 2
+  min-floors: 2
+  max-floors: 6
+  # Maze is cells x cells per floor.
+  cells: 9
+  seconds-per-floor: 30
+
+waves:
+  # Total mobs = transit length * mobs-per-room.
+  mobs-per-room: 2
+  wave-size: 5
+  seconds-per-mob: 8
+  mob-types: [ZOMBIE, SKELETON, SPIDER]
+
+layout:
+  room-spacing: 64
+  session-spacing: 512
+  base-y: 64
+
+session:
+  max-team-size: 4
+  rejoin-grace-seconds: 120
