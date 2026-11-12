@@ -52,6 +52,31 @@ class BuiltinTemplatesTest {
     }
 
     @Test
+    void transitRoomsAreLongAndExitAtTheFarEnd() {
+        for (TemplateType type : List.of(TemplateType.LADDER, TemplateType.CHUTE)) {
+            RoomTemplate room = BuiltinTemplates.of(type).getFirst();
+            assertEquals(type, room.type());
+            int width = room.size().getBlockX();
+            int length = room.size().getBlockZ();
+            assertTrue(length >= 4 * width, room.id() + " should be much longer than wide");
+            assertTrue(length <= 64, room.id() + " must fit the default room spacing");
+            Blueprint bp = blueprint(room);
+            Vector feet = room.entrance().offset();
+            assertTrue(bp.isAir(feet.getBlockX(), feet.getBlockY(), feet.getBlockZ())
+                    && bp.isAir(feet.getBlockX(), feet.getBlockY() + 1, feet.getBlockZ())
+                    && bp.supports(feet.getBlockX(), feet.getBlockY() - 1, feet.getBlockZ()), room.id() + " entrance");
+            SpotFinder finder = new SpotFinder(bp, room.entrance());
+            assertFalse(room.buttonSpots().isEmpty(), room.id() + " has no spots");
+            for (ButtonSpot spot : room.buttonSpots()) {
+                assertTrue(finder.isReachable(spot), room.id() + " spot not reachable: " + spot);
+                assertTrue(spot.block().getBlockZ() >= length - 10, room.id() + " spot not at the far end: " + spot);
+            }
+            assertTrue(TemplateValidation.problems(type, room.size(), 64, room.entrance(),
+                    room.buttonSpots(), room.mobSpawns()).isEmpty());
+        }
+    }
+
+    @Test
     void breakRoomStartsWithPedestalFacingEntrance() {
         RoomTemplate room = BuiltinTemplates.of(TemplateType.BREAK).getFirst();
         ButtonSpot first = room.buttonSpots().getFirst();

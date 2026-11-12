@@ -84,7 +84,7 @@ Both types work for ladders and chutes. Type is fixed per transit at board gener
   - `roomOrigin(s, roomIndex)` — min corner of a `room-spacing`^2 footprint.
   - `arenaOrigin(s, pawnSlot)` — min corner of a 128 x 128 footprint, free from `base-y` to
     the world top, for one pawn's transit challenge.
-- **Templates** have a type (`ROOM`, `BREAK`, `ARENA`), a size, an entrance (offset + yaw /
+- **Templates** have a type (`ROOM`, `BREAK`, `LADDER`, `CHUTE`, `ARENA`), a size, an entrance (offset + yaw /
   pitch), candidate **button spots** (block offset + the face the button sits on) and mob
   spawn offsets (arenas). No rotation in v1.
 - Stored with Paper's structure API as `templates/<type>/<id>.nbt` plus a sidecar
@@ -100,7 +100,19 @@ Both types work for ladders and chutes. Type is fixed per transit at board gener
   template a room index gets is chosen with a `Random` seeded from board seed + index.
   Everything a session placed is cleared when the session ends.
 
+- `LADDER` and `CHUTE` templates are the rooms of ladder and chute squares. They are long and
+  narrow with the exit at the far end, so they are a quick dash rather than a search. The
+  built-in ladder room climbs over a floor laid out like a ladder; the built-in chute room
+  slides down packed ice. If none fit the room spacing, `ROOM` templates are used.
+
 ## 4. Per-pawn exit buttons
+
+The button's material is chosen to blend into the block it is attached to (blackstone button
+on blackstone or deepslate, oak on oak planks and bookshelves, and so on; stone by default).
+
+Pressing an exit plays a short animation before the pawn moves: a rolling number that slows and
+lands on the roll in normal and break rooms, a rising helix with levitation for a ladder, and
+darkness with smoke pulled into the floor for a chute.
 
 Each pawn in a room gets a `BlockDisplay` showing a button (oriented to the spot's face) and
 an `Interaction` entity over it. Both are `setVisibleByDefault(false)` and shown only to the

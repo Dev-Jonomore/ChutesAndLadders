@@ -4,6 +4,7 @@ import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.IntUnaryOperator;
 import mc.jonomore.chutes.world.Blueprint.Kind;
 import org.bukkit.block.BlockFace;
 import org.bukkit.util.BlockVector;
@@ -41,6 +42,8 @@ final class BuiltinTemplates {
         Map<TemplateType, List<RoomTemplate>> map = new EnumMap<>(TemplateType.class);
         map.put(TemplateType.ROOM, sorted(List.of(crates(), cellar(), library(), vault())));
         map.put(TemplateType.BREAK, List.of(breakRoom()));
+        map.put(TemplateType.LADDER, List.of(ladderRoom()));
+        map.put(TemplateType.CHUTE, List.of(chuteRoom()));
         map.put(TemplateType.ARENA, List.of(arena()));
         return map;
     }
@@ -179,6 +182,76 @@ final class BuiltinTemplates {
         ButtonSpot pedestal = new ButtonSpot(new BlockVector(7, 2, 7), BlockFace.NORTH);
         List<ButtonSpot> spots = new SpotFinder(bp, entrance).pick(entrance, 5, MIN_ENTRANCE_DISTANCE, List.of(pedestal));
         return new GeneratedTemplate(PREFIX + "break", TemplateType.BREAK, bp, entrance, spots, List.of());
+    }
+
+    static final int TRANSIT_WIDTH = 7;
+    static final int TRANSIT_LENGTH = 41;
+    static final int TRANSIT_STEPS = 8;
+    /** Spots in transit rooms are only at the far end: the room is a dash, not a search. */
+    static final int TRANSIT_SPOTS = 3;
+    static final double TRANSIT_MIN_DISTANCE = TRANSIT_LENGTH - 9.0;
+
+    /** Height of the stepped floor at z: flat for a few blocks, then one step up every four blocks. */
+    static int stepLevel(int z) {
+        return z < 6 ? 0 : Math.min(TRANSIT_STEPS, (z - 2) / 4);
+    }
+
+    /**
+     * Long, narrow hall that climbs away from the entrance, floored like a ladder laid flat:
+     * log rails down both sides and alternating plank rungs. The exit is at the top end.
+     */
+    static RoomTemplate ladderRoom() {
+        Blueprint bp = new Blueprint(TRANSIT_WIDTH, TRANSIT_STEPS + 6, TRANSIT_LENGTH)
+                .shell("minecraft:oak_planks", "minecraft:spruce_planks", "minecraft:spruce_planks");
+        for (int z = 1; z < TRANSIT_LENGTH - 1; z++) {
+            int level = stepLevel(z);
+            String rung = z % 2 == 0 ? "minecraft:oak_planks" : "minecraft:dark_oak_planks";
+            for (int y = 0; y <= level; y++) {
+                bp.fill(2, y, z, 4, y, z, rung);
+                bp.full(1, y, z, "minecraft:stripped_oak_log[axis=z]");
+                bp.full(5, y, z, "minecraft:stripped_oak_log[axis=z]");
+            }
+        }
+        transitLights(bp, "minecraft:glowstone", BuiltinTemplates::stepLevel);
+        SpawnPoint entrance = entrance(bp);
+        return transitRoom("ladder", TemplateType.LADDER, bp, entrance);
+    }
+
+    /**
+     * Long, narrow hall that drops away from the entrance over packed ice, so players slide down
+     * it. The exit is at the bottom end.
+     */
+    static RoomTemplate chuteRoom() {
+        Blueprint bp = new Blueprint(TRANSIT_WIDTH, TRANSIT_STEPS + 6, TRANSIT_LENGTH)
+                .shell("minecraft:packed_ice", "minecraft:prismarine_bricks", "minecraft:dark_prismarine");
+        IntUnaryOperator level = z -> TRANSIT_STEPS - stepLevel(z);
+        for (int z = 1; z < TRANSIT_LENGTH - 1; z++) {
+            int top = level.applyAsInt(z);
+            if (top > 0) {
+                bp.fill(1, 1, z, 5, top, z, "minecraft:prismarine_bricks");
+                bp.fill(1, top, z, 5, top, z, "minecraft:packed_ice");
+            }
+        }
+        transitLights(bp, "minecraft:sea_lantern", level);
+        SpawnPoint entrance = new SpawnPoint(
+                new Vector(TRANSIT_WIDTH / 2 + 0.5, TRANSIT_STEPS + 1, 1.5), 0f, 0f);
+        return transitRoom("chute", TemplateType.CHUTE, bp, entrance);
+    }
+
+    /** Lamps set into both side walls a little above the floor, since the ceiling is too far to light it. */
+    private static void transitLights(Blueprint bp, String light, IntUnaryOperator level) {
+        for (int z = 2; z < TRANSIT_LENGTH - 1; z += 4) {
+            int y = level.applyAsInt(z) + 3;
+            bp.full(0, y, z, light);
+            bp.full(TRANSIT_WIDTH - 1, y, z, light);
+        }
+        bp.ceilingLights(light, 3);
+    }
+
+    private static RoomTemplate transitRoom(String id, TemplateType type, Blueprint bp, SpawnPoint entrance) {
+        List<ButtonSpot> spots = new SpotFinder(bp, entrance)
+                .pick(entrance, TRANSIT_SPOTS, TRANSIT_MIN_DISTANCE, List.of());
+        return new GeneratedTemplate(PREFIX + id, type, bp, entrance, spots, List.of());
     }
 
     /** Roofed 39 x 39 arena with four cover pillars. The roof keeps undead from burning at noon. */

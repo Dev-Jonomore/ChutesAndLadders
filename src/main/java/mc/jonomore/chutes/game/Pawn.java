@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
 import org.jspecify.annotations.Nullable;
 
 /** One team on the board. All members are always in the same room. */
@@ -32,6 +33,8 @@ final class Pawn {
 
     @Nullable ExitButton button;
     @Nullable ActiveTransit transit;
+    /** The roll or discovery animation playing between an exit press and leaving the room. */
+    @Nullable BukkitTask animation;
     int transitCounter;
     /** Members who asked to leave while inside a challenge; processed when it ends. */
     final Set<UUID> pendingLeaves = new HashSet<>();

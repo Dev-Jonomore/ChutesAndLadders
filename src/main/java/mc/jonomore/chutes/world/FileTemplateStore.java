@@ -116,6 +116,10 @@ public final class FileTemplateStore implements TemplateStore {
         List<RoomTemplate> fitting = BuiltinTemplates.of(type).stream()
                 .filter(t -> t.size().getBlockX() <= footprint && t.size().getBlockZ() <= footprint)
                 .toList();
+        if (fitting.isEmpty() && (type == TemplateType.LADDER || type == TemplateType.CHUTE)) {
+            // The long transit rooms need more room than the minimum spacing; plain rooms still work.
+            return builtinTemplates(TemplateType.ROOM);
+        }
         if (fitting.isEmpty()) {
             throw new IllegalStateException("no built-in " + type + " template fits a " + footprint + " footprint");
         }

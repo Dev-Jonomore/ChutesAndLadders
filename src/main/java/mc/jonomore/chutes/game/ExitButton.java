@@ -44,7 +44,12 @@ final class ExitButton {
         int by = roomOrigin.getBlockY() + spot.block().getBlockY() + face.getModY();
         int bz = roomOrigin.getBlockZ() + spot.block().getBlockZ() + face.getModZ();
 
-        Switch data = (Switch) Material.STONE_BUTTON.createBlockData();
+        // Match the button to the block it sits on so it blends into the room.
+        Material support = world.getBlockAt(
+                roomOrigin.getBlockX() + spot.block().getBlockX(),
+                roomOrigin.getBlockY() + spot.block().getBlockY(),
+                roomOrigin.getBlockZ() + spot.block().getBlockZ()).getType();
+        Switch data = (Switch) ButtonMaterials.buttonFor(support).createBlockData();
         double hitX = bx + 0.5;
         double hitZ = bz + 0.5;
         double hitY;

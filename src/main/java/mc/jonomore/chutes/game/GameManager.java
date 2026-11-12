@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
 import mc.jonomore.chutes.ChutesConfig;
 import mc.jonomore.chutes.Services;
 import mc.jonomore.chutes.board.Board;
@@ -407,13 +408,24 @@ public final class GameManager {
         if (rooms.isEmpty() || breaks.isEmpty()) {
             throw new IllegalStateException("the template store returned no ROOM or BREAK templates");
         }
+        List<RoomTemplate> ladders = orElse(services.templates().all(TemplateType.LADDER), rooms);
+        List<RoomTemplate> chutes = orElse(services.templates().all(TemplateType.CHUTE), rooms);
         List<RoomTemplate> chosen = new ArrayList<>(board.size());
         for (int index = 0; index < board.size(); index++) {
-            List<RoomTemplate> pool = board.room(index).kind() == RoomKind.BREAK ? breaks : rooms;
+            List<RoomTemplate> pool = switch (board.room(index).kind()) {
+                case BREAK -> breaks;
+                case LADDER -> ladders;
+                case CHUTE -> chutes;
+                case NORMAL -> rooms;
+            };
             Random random = new Random(MovementRules.derivedSeed(seed, index, MovementRules.TEMPLATE_SALT));
             chosen.add(pool.get(random.nextInt(pool.size())));
         }
         return chosen;
+    }
+
+    private static List<RoomTemplate> orElse(List<RoomTemplate> preferred, List<RoomTemplate> fallback) {
+        return preferred.isEmpty() ? fallback : preferred;
     }
 
     private int freeSlot() {
@@ -554,17 +566,56 @@ public final class GameManager {
                 int roll = MovementRules.roll(dice, config.board().maxRoll());
                 int from = pawn.roomIndex;
                 int destination = MovementRules.afterRoll(from, roll, session.board().size());
-                Component note = text(presser.getName() + " rolled " + roll, NamedTextColor.GOLD);
-                for (Player player : pawn.onlineMembers()) {
-                    player.playSound(player.getLocation(), Sound.BLOCK_STONE_BUTTON_CLICK_ON, 1f, 1f);
-                    player.sendMessage(GameText.info(presser.getName() + " rolled a " + roll + ": room "
-                            + (from + 1) + " -> " + (MovementRules.isFinish(destination, session.board().size())
-                                    ? "finish" : String.valueOf(destination + 1))));
-                }
-                arrive(session, pawn, destination, note, false);
+                String roller = presser.getName();
+                Component note = text(roller + " rolled " + roll, NamedTextColor.GOLD);
+                clickSound(pawn);
+                animate(session, pawn, done -> ExitAnimations.roll(plugin, pawn::onlineMembers, dice,
+                        config.board().maxRoll(), roll, roller, done), () -> {
+                    for (Player player : pawn.onlineMembers()) {
+                        player.sendMessage(GameText.info(roller + " rolled a " + roll + ": room "
+                                + (from + 1) + " -> " + (MovementRules.isFinish(destination, session.board().size())
+                                        ? "finish" : String.valueOf(destination + 1))));
+                    }
+                    arrive(session, pawn, destination, note, false);
+                });
             }
-            case LADDER, CHUTE -> startTransit(session, pawn, room);
+            case LADDER, CHUTE -> {
+                Transit transit = Objects.requireNonNull(room.transit(), "transit room without transit");
+                clickSound(pawn);
+                animate(session, pawn, done -> ExitAnimations.discovery(plugin, pawn::onlineMembers, transit, done),
+                        () -> startTransit(session, pawn, room));
+            }
         }
+    }
+
+    private static void clickSound(Pawn pawn) {
+        for (Player player : pawn.onlineMembers()) {
+            player.playSound(player.getLocation(), Sound.BLOCK_STONE_BUTTON_CLICK_ON, 1f, 1f);
+        }
+    }
+
+    /**
+     * Plays an exit animation for a pawn, then runs {@code then} if the pawn is still in play.
+     * The pawn has no button while it runs, so it cannot press again; {@link #dismantle} cancels it.
+     */
+    private void animate(GameSession session, Pawn pawn, Function<Runnable, BukkitTask> animation, Runnable then) {
+        BukkitTask[] started = new BukkitTask[1];
+        Runnable done = () -> {
+            if (pawn.animation != started[0]) {
+                return;
+            }
+            pawn.animation = null;
+            if (session.state != SessionState.RUNNING || !pawn.active() || pawn.transit != null) {
+                return;
+            }
+            try {
+                then.run();
+            } catch (RuntimeException e) {
+                plugin.getSLF4JLogger().error("Exit failed for pawn {}", pawn.name, e);
+            }
+        };
+        started[0] = animation.apply(done);
+        pawn.animation = started[0];
     }
 
     // ------------------------------------------------------------------ transits
@@ -803,6 +854,11 @@ public final class GameManager {
     /** Removes a pawn's button and aborts its challenge. */
     private void dismantle(Pawn pawn) {
         removeButton(pawn);
+        BukkitTask animation = pawn.animation;
+        pawn.animation = null;
+        if (animation != null) {
+            animation.cancel();
+        }
         ActiveTransit active = pawn.transit;
         pawn.transit = null;
         if (active != null) {
