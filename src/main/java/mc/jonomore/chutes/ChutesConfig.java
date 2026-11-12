@@ -32,7 +32,8 @@ public record ChutesConfig(
     public record Scoring(int ladderMinGain, int chuteMinRegress) {
     }
 
-    public record Maze(int roomsPerFloor, int minFloors, int maxFloors, int cells, int secondsPerFloor) {
+    public record Maze(int roomsPerFloor, int minFloors, int maxFloors, int cellsWide, int cellsLong,
+            int secondsPerFloor) {
     }
 
     public record Waves(int mobsPerRoom, int waveSize, int secondsPerMob, List<EntityType> mobTypes) {
@@ -86,7 +87,8 @@ public record ChutesConfig(
                         atLeast(maze, "rooms-per-floor", 1),
                         minFloors,
                         Math.max(minFloors, maze.getInt("max-floors")),
-                        atLeast(maze, "cells", 3),
+                        atLeast(maze, "cells-wide", 2),
+                        atLeast(maze, "cells-long", 2),
                         atLeast(maze, "seconds-per-floor", 1)),
                 new Waves(
                         atLeast(waves, "mobs-per-room", 1),

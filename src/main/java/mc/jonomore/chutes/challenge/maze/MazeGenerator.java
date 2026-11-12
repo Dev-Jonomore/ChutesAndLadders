@@ -20,25 +20,31 @@ public final class MazeGenerator {
     private MazeGenerator() {
     }
 
+    /** A square maze, {@code cells} on each side. */
     public static List<MazeFloor> generate(int cells, int floors, long seed) {
-        if (cells < 2) {
-            throw new IllegalArgumentException("cells must be at least 2, got " + cells);
+        return generate(cells, cells, floors, seed);
+    }
+
+    public static List<MazeFloor> generate(int cellsX, int cellsZ, int floors, long seed) {
+        if (cellsX < 2 || cellsZ < 2) {
+            throw new IllegalArgumentException("a maze needs at least 2 x 2 cells, got " + cellsX + " x " + cellsZ);
         }
         if (floors < 1) {
             throw new IllegalArgumentException("floors must be at least 1, got " + floors);
         }
         Random random = new Random(seed);
-        int last = cells - 1;
+        int lastX = cellsX - 1;
+        int lastZ = cellsZ - 1;
         Cell start = switch (random.nextInt(4)) {
             case 0 -> new Cell(0, 0);
-            case 1 -> new Cell(last, 0);
-            case 2 -> new Cell(0, last);
-            default -> new Cell(last, last);
+            case 1 -> new Cell(lastX, 0);
+            case 2 -> new Cell(0, lastZ);
+            default -> new Cell(lastX, lastZ);
         };
 
         List<MazeFloor> result = new ArrayList<>(floors);
         for (int i = 0; i < floors; i++) {
-            MazeFloor floor = carve(cells, random);
+            MazeFloor floor = carve(cellsX, cellsZ, random);
             Cell exit = farthest(floor, start);
             floor.setEnds(start, exit);
             result.add(floor);
@@ -48,11 +54,11 @@ public final class MazeGenerator {
     }
 
     /** Iterative recursive-backtracker: yields a spanning tree of the grid, i.e. a perfect maze. */
-    private static MazeFloor carve(int cells, Random random) {
-        MazeFloor floor = new MazeFloor(cells);
-        boolean[][] visited = new boolean[cells][cells];
+    private static MazeFloor carve(int cellsX, int cellsZ, Random random) {
+        MazeFloor floor = new MazeFloor(cellsX, cellsZ);
+        boolean[][] visited = new boolean[cellsX][cellsZ];
         Deque<Cell> stack = new ArrayDeque<>();
-        Cell first = new Cell(random.nextInt(cells), random.nextInt(cells));
+        Cell first = new Cell(random.nextInt(cellsX), random.nextInt(cellsZ));
         visited[first.x()][first.z()] = true;
         stack.push(first);
         List<Direction> directions = new ArrayList<>(Arrays.asList(Direction.values()));
@@ -82,8 +88,8 @@ public final class MazeGenerator {
         int[][] distance = floor.distancesFrom(from);
         Cell best = from;
         int bestDistance = 0;
-        for (int x = 0; x < floor.cells(); x++) {
-            for (int z = 0; z < floor.cells(); z++) {
+        for (int x = 0; x < floor.cellsX(); x++) {
+            for (int z = 0; z < floor.cellsZ(); z++) {
                 if (distance[x][z] > bestDistance) {
                     bestDistance = distance[x][z];
                     best = new Cell(x, z);

@@ -9,7 +9,7 @@ Base package `mc.jonomore.chutes`. No NMS, no PacketEvents, no other plugin depe
 - A **pawn** is a team of 1..`max-team-size` players. The whole pawn is always in the same
   room and moves together. Solo play is a pawn of one.
 - Play is **real-time**: all pawns act simultaneously. Every pawn tracks **plies** (exits
-  taken, including ladder/chute exits) and **elapsed ticks** from game start to finish.
+  pressed; ladder and chute squares have no exit to press) and **elapsed ticks** from game start to finish.
 - Every room is a "find the button" room. The button exists **per pawn** (see §4), at a spot
   chosen at random from the template's candidate spots, so pawns cannot copy each other.
 - Room kinds:
@@ -18,8 +18,9 @@ Base package `mc.jonomore.chutes`. No NMS, no PacketEvents, no other plugin depe
     candidate spot). Heals and feeds the pawn. Exit behaves like `NORMAL`. If
     `break-checkpoint` is on, a chute can never drop the pawn below the last break room it
     has visited.
-  - `LADDER` / `CHUTE` — forced, as in the board game. The only exit starts a **transit**.
-    The room kind is announced on arrival (title + sound).
+  - `LADDER` / `CHUTE` — forced, as in the board game. There is no button: the pawn lands in a
+    short landing hall, the discovery animation plays, and the **transit** challenge starts.
+    An up-tempo music disc plays to the participants for the length of the challenge.
 - Room 0 is always `NORMAL`. The first `safe-start` rooms are never ladders or chutes.
 - Players are in adventure mode, invulnerable and hunger-free everywhere except inside a
   wave challenge.
@@ -44,7 +45,8 @@ forced as usual.
 
 Both types work for ladders and chutes. Type is fixed per transit at board generation.
 
-- **MAZE** — stacked floors, each a generated perfect 2D maze (`cells` x `cells`) with one
+- **MAZE** — stacked floors, each a generated perfect 2D maze that is long and narrow
+  (`cells-wide` x `cells-long`) with one
   way to the next floor. Floors `F = clamp(ceil(|delta| / rooms-per-floor), min-floors,
   max-floors)`. Time limit and par are `F * seconds-per-floor`.
   - Ladder: start at the bottom, climb. `progress = highest floor reached / F`. Reaching the
@@ -52,7 +54,8 @@ Both types work for ladders and chutes. Type is fixed per transit at board gener
   - Chute: start at the top, descend. Reaching the bottom = completed. Timer expiry = failed.
   - Maze seed is derived from board seed + room index, so every pawn taking the same transit
     gets the same maze. Built on demand in the pawn's arena region, removed afterwards.
-- **WAVES** — a wave arena (template of type `ARENA`, or the built-in fallback). Total mobs
+- **WAVES** — a wave arena (template of type `ARENA`, or the built-in fallback, a long hall
+  the mobs come down). Total mobs
   `= |delta| * mobs-per-room`, spawned in waves of `wave-size`; the next wave spawns when the
   current one is dead. Par/time limit `= total mobs * seconds-per-mob`.
   - `progress = kills / total`. All mobs dead = completed.

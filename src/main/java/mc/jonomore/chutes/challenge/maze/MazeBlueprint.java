@@ -94,8 +94,7 @@ public final class MazeBlueprint {
     }
 
     public Kind kind(int dx, int dy, int dz) {
-        int width = geometry.width();
-        if (dx < 0 || dz < 0 || dx >= width || dz >= width || dy < 0 || dy >= geometry.height()) {
+        if (dx < 0 || dz < 0 || dx >= geometry.width() || dz >= geometry.depth() || dy < 0 || dy >= geometry.height()) {
             return Kind.AIR;
         }
         int level = dy / MazeGeometry.LEVEL_HEIGHT;

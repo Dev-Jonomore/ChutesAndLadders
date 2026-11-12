@@ -98,13 +98,15 @@ final class MazeChallenge implements Challenge {
         this.originZ = origin.getBlockZ();
 
         ChutesConfig.Maze config = context.config().maze();
-        int cells = Math.min(config.cells(), MazeGeometry.maxCells(ARENA_FOOTPRINT));
+        int maxCells = MazeGeometry.maxCells(ARENA_FOOTPRINT);
+        int cellsX = Math.min(config.cellsWide(), maxCells);
+        int cellsZ = Math.min(config.cellsLong(), maxCells);
         int floors = floorCount(context.transit().length(), config);
         int fitting = (world.getMaxHeight() - 1 - originY) / MazeGeometry.LEVEL_HEIGHT;
         floors = Math.max(1, Math.min(floors, fitting));
 
-        this.geometry = new MazeGeometry(cells, floors, context.transit().isLadder());
-        this.blueprint = new MazeBlueprint(geometry, MazeGenerator.generate(cells, floors, context.seed()));
+        this.geometry = new MazeGeometry(cellsX, cellsZ, floors, context.transit().isLadder());
+        this.blueprint = new MazeBlueprint(geometry, MazeGenerator.generate(cellsX, cellsZ, floors, context.seed()));
         this.parTicks = (long) floors * config.secondsPerFloor() * 20L;
         this.participants = context.participants().stream().map(Player::getUniqueId).toList();
         this.bossBar = BossBar.bossBar(Component.empty(), 1f,
@@ -305,7 +307,7 @@ final class MazeChallenge implements Challenge {
         int minCx = originX >> 4;
         int minCz = originZ >> 4;
         int maxCx = (originX + geometry.width() - 1) >> 4;
-        int maxCz = (originZ + geometry.width() - 1) >> 4;
+        int maxCz = (originZ + geometry.depth() - 1) >> 4;
         for (int cx = minCx; cx <= maxCx; cx++) {
             for (int cz = minCz; cz <= maxCz; cz++) {
                 Chunk chunk = world.getChunkAt(cx, cz);
@@ -328,10 +330,11 @@ final class MazeChallenge implements Challenge {
         light.setLevel(light.getMaximumLevel());
 
         int width = geometry.width();
+        int depth = geometry.depth();
         for (int dy = 0; dy < geometry.height(); dy++) {
             BlockData wall = WALLS.get((dy / MazeGeometry.LEVEL_HEIGHT) % WALLS.size()).createBlockData();
             for (int dx = 0; dx < width; dx++) {
-                for (int dz = 0; dz < width; dz++) {
+                for (int dz = 0; dz < depth; dz++) {
                     BlockData data = switch (blueprint.kind(dx, dy, dz)) {
                         case AIR -> air;
                         case SLAB -> slab;
@@ -368,10 +371,11 @@ final class MazeChallenge implements Challenge {
     private void clearBlocks() {
         blocksPlaced = false;
         int width = geometry.width();
+        int depth = geometry.depth();
         // Top down, so nothing is ever left without the block it hangs on.
         for (int dy = geometry.height() - 1; dy >= 0; dy--) {
             for (int dx = 0; dx < width; dx++) {
-                for (int dz = 0; dz < width; dz++) {
+                for (int dz = 0; dz < depth; dz++) {
                     Block block = world.getBlockAt(originX + dx, originY + dy, originZ + dz);
                     if (!block.getType().isAir()) {
                         block.setType(Material.AIR, false);

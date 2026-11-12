@@ -83,8 +83,8 @@ class MazeGeneratorTest {
         StringBuilder out = new StringBuilder();
         for (MazeFloor floor : floors) {
             out.append(floor.start()).append(floor.exit());
-            for (int x = 0; x < floor.cells(); x++) {
-                for (int z = 0; z < floor.cells(); z++) {
+            for (int x = 0; x < floor.cellsX(); x++) {
+                for (int z = 0; z < floor.cellsZ(); z++) {
                     Cell cell = new Cell(x, z);
                     out.append(floor.isOpen(cell, Direction.EAST) ? 'e' : '.');
                     out.append(floor.isOpen(cell, Direction.SOUTH) ? 's' : '.');

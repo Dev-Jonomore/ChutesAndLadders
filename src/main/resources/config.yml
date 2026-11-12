@@ -27,8 +27,9 @@ maze:
   rooms-per-floor: 2
   min-floors: 2
   max-floors: 6
-  # Maze is cells x cells per floor.
-  cells: 9
+  # Each floor is a long, narrow maze of cells-wide x cells-long cells (3 blocks per cell).
+  cells-wide: 5
+  cells-long: 16
   seconds-per-floor: 30
 
 waves:

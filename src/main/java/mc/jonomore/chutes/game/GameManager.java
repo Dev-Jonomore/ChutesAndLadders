@@ -38,6 +38,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.command.CommandSender;
@@ -498,6 +499,13 @@ public final class GameManager {
             player.showTitle(title);
             playRoomSound(player, room.kind());
         }
+        Transit transit = room.transit();
+        if (transit != null) {
+            // Ladder and chute squares have no button: the pawn lands, and the challenge begins.
+            animate(session, pawn, done -> ExitAnimations.discovery(plugin, pawn::onlineMembers, transit, done),
+                    () -> startTransit(session, pawn, room));
+            return;
+        }
         spawnButton(pawn, template, origin, rest);
     }
 
@@ -649,6 +657,7 @@ public final class GameManager {
             Challenge challenge = factory.create(context);
             active.challenge = challenge;
             challenge.start();
+            startMusic(active);
         } catch (RuntimeException e) {
             plugin.getSLF4JLogger().error("{} challenge failed to start", type, e);
             if (pawn.transit == active) {
@@ -695,6 +704,7 @@ public final class GameManager {
     }
 
     private void completeTransit(GameSession session, Pawn pawn, ActiveTransit active, ChallengeResult result) {
+        stopMusic(active);
         pawn.transit = null;
         active.challenge = null;
         int moved;
@@ -717,6 +727,54 @@ public final class GameManager {
             }
         }
         arrive(session, pawn, destination, outcome, true);
+    }
+
+    // ------------------------------------------------------------------ challenge music
+
+    private static final long PIGSTEP_TICKS = 148 * 20L;
+    private static final long OTHERSIDE_TICKS = 195 * 20L;
+
+    /** An up-tempo disc for the length of the challenge: Pigstep for waves, Otherside for mazes. */
+    private void startMusic(ActiveTransit active) {
+        boolean waves = active.type == ChallengeType.WAVES;
+        active.music = waves ? Sound.MUSIC_DISC_PIGSTEP : Sound.MUSIC_DISC_OTHERSIDE;
+        active.musicLengthTicks = waves ? PIGSTEP_TICKS : OTHERSIDE_TICKS;
+        playMusic(active, now());
+    }
+
+    private void playMusic(ActiveTransit active, long now) {
+        Sound music = active.music;
+        if (music == null) {
+            return;
+        }
+        active.musicStartedAt = now;
+        for (UUID id : active.participants) {
+            Player player = Bukkit.getPlayer(id);
+            if (player != null) {
+                // Emitted from the player, so it follows them down the room instead of fading out.
+                player.playSound(player, music, SoundCategory.RECORDS, 1f, 1f);
+            }
+        }
+    }
+
+    private void replayMusic(@Nullable ActiveTransit active, long now) {
+        if (active != null && active.music != null && now - active.musicStartedAt >= active.musicLengthTicks) {
+            playMusic(active, now);
+        }
+    }
+
+    private void stopMusic(ActiveTransit active) {
+        Sound music = active.music;
+        if (music == null) {
+            return;
+        }
+        active.music = null;
+        for (UUID id : active.participants) {
+            Player player = Bukkit.getPlayer(id);
+            if (player != null) {
+                player.stopSound(music, SoundCategory.RECORDS);
+            }
+        }
     }
 
     private void abortQuietly(Challenge challenge) {
@@ -862,6 +920,7 @@ public final class GameManager {
         ActiveTransit active = pawn.transit;
         pawn.transit = null;
         if (active != null) {
+            stopMusic(active);
             Challenge challenge = active.challenge;
             active.challenge = null;
             if (challenge != null) {
@@ -899,6 +958,10 @@ public final class GameManager {
         pawn.pendingLeaves.remove(id);
         ActiveTransit active = pawn.transit;
         if (active != null) {
+            Player leaving = Bukkit.getPlayer(id);
+            if (leaving != null && active.music != null && active.participants.contains(id)) {
+                leaving.stopSound(active.music, SoundCategory.RECORDS);
+            }
             active.participants.remove(id);
         }
         boolean mine = byPlayer.remove(id, session);
@@ -1077,6 +1140,7 @@ public final class GameManager {
                             continue;
                         }
                         rescueFallen(session, pawn);
+                        replayMusic(pawn.transit, now);
                         if (hudTick) {
                             GameHud.show(session, pawn, now);
                         }

@@ -6,6 +6,7 @@ import java.util.UUID;
 import mc.jonomore.chutes.board.ChallengeType;
 import mc.jonomore.chutes.board.Transit;
 import mc.jonomore.chutes.challenge.Challenge;
+import org.bukkit.Sound;
 import org.jspecify.annotations.Nullable;
 
 /** A pawn's running ladder or chute challenge. */
@@ -20,6 +21,10 @@ final class ActiveTransit {
     /** Players handed to the challenge; the challenge owns them (combat, inventory) until it ends. */
     final Set<UUID> participants;
     @Nullable Challenge challenge;
+    /** The disc playing to the participants, replayed when it runs out. */
+    @Nullable Sound music;
+    long musicLengthTicks;
+    long musicStartedAt;
 
     ActiveTransit(int token, int fromRoom, Transit transit, ChallengeType type, Set<UUID> participants) {
         this.token = token;

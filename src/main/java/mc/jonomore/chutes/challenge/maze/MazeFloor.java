@@ -5,9 +5,9 @@ import java.util.Arrays;
 import java.util.Deque;
 
 /**
- * One floor of a maze: a {@code cells x cells} grid with passages between neighbouring cells,
+ * One floor of a maze: a {@code cellsX x cellsZ} grid with passages between neighbouring cells,
  * the cell players enter the floor at and the cell that leads on to the next floor.
- * Cells are addressed by {@code (x, z)}, both in {@code 0..cells-1}.
+ * Cells are addressed by {@code (x, z)}, from 0 up to the size on that axis.
  */
 public final class MazeFloor {
 
@@ -34,7 +34,8 @@ public final class MazeFloor {
         }
     }
 
-    private final int cells;
+    private final int cellsX;
+    private final int cellsZ;
     /** eastOpen[x][z]: passage between (x, z) and (x + 1, z). */
     private final boolean[][] eastOpen;
     /** southOpen[x][z]: passage between (x, z) and (x, z + 1). */
@@ -42,14 +43,19 @@ public final class MazeFloor {
     private Cell start;
     private Cell exit;
 
-    MazeFloor(int cells) {
-        this.cells = cells;
-        this.eastOpen = new boolean[cells][cells];
-        this.southOpen = new boolean[cells][cells];
+    MazeFloor(int cellsX, int cellsZ) {
+        this.cellsX = cellsX;
+        this.cellsZ = cellsZ;
+        this.eastOpen = new boolean[cellsX][cellsZ];
+        this.southOpen = new boolean[cellsX][cellsZ];
     }
 
-    public int cells() {
-        return cells;
+    public int cellsX() {
+        return cellsX;
+    }
+
+    public int cellsZ() {
+        return cellsZ;
     }
 
     public Cell start() {
@@ -66,7 +72,7 @@ public final class MazeFloor {
     }
 
     public boolean contains(Cell cell) {
-        return cell.x() >= 0 && cell.z() >= 0 && cell.x() < cells && cell.z() < cells;
+        return cell.x() >= 0 && cell.z() >= 0 && cell.x() < cellsX && cell.z() < cellsZ;
     }
 
     /** Whether there is a passage from {@code cell} towards {@code direction}. */
@@ -95,8 +101,8 @@ public final class MazeFloor {
 
     public int passageCount() {
         int count = 0;
-        for (int x = 0; x < cells; x++) {
-            for (int z = 0; z < cells; z++) {
+        for (int x = 0; x < cellsX; x++) {
+            for (int z = 0; z < cellsZ; z++) {
                 if (eastOpen[x][z]) {
                     count++;
                 }
@@ -110,7 +116,7 @@ public final class MazeFloor {
 
     /** Walking distance from {@code from} to every cell, or -1 where unreachable. Indexed [x][z]. */
     public int[][] distancesFrom(Cell from) {
-        int[][] distance = new int[cells][cells];
+        int[][] distance = new int[cellsX][cellsZ];
         for (int[] column : distance) {
             Arrays.fill(column, -1);
         }

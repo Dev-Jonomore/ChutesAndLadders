@@ -26,7 +26,7 @@ class MazeBlueprintTest {
 
     @Test
     void floorCountFollowsTheSpec() {
-        ChutesConfig.Maze config = new ChutesConfig.Maze(2, 2, 6, 9, 30);
+        ChutesConfig.Maze config = new ChutesConfig.Maze(2, 2, 6, 5, 16, 30);
         assertEquals(2, MazeChallenge.floorCount(1, config));
         assertEquals(2, MazeChallenge.floorCount(3, config));
         assertEquals(3, MazeChallenge.floorCount(5, config));

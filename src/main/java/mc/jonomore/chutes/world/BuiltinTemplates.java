@@ -254,24 +254,28 @@ final class BuiltinTemplates {
         return new GeneratedTemplate(PREFIX + id, type, bp, entrance, spots, List.of());
     }
 
-    /** Roofed 39 x 39 arena with four cover pillars. The roof keeps undead from burning at noon. */
+    /**
+     * Long roofed hall, 13 x 59 inside, with staggered pillars for cover. Players enter at one
+     * end and the mobs come at them down its length. The roof keeps undead from burning at noon.
+     */
     static RoomTemplate arena() {
-        Blueprint bp = new Blueprint(41, 9, 41)
+        Blueprint bp = new Blueprint(15, 9, 61)
                 .shell("minecraft:smooth_stone", "minecraft:stone_bricks", "minecraft:deepslate_tiles")
                 .wallBand(1, 1, "minecraft:mossy_stone_bricks")
                 .ceilingLights("minecraft:glowstone", 4);
-        for (int x : new int[] {9, 29}) {
-            for (int z : new int[] {9, 29}) {
-                bp.fill(x, 1, z, x + 2, 7, z + 2, "minecraft:polished_andesite");
-            }
+        boolean left = true;
+        for (int z = 12; z <= 48; z += 12) {
+            int x = left ? 3 : 10;
+            bp.fill(x, 1, z, x + 1, 7, z + 1, "minecraft:polished_andesite");
+            left = !left;
         }
         SpawnPoint entrance = entrance(bp);
         List<Vector> spawns = List.of(
-                new Vector(8.5, 1, 20.5), new Vector(32.5, 1, 20.5), new Vector(20.5, 1, 20.5),
-                new Vector(20.5, 1, 36.5), new Vector(8.5, 1, 35.5), new Vector(32.5, 1, 35.5),
-                new Vector(14.5, 1, 26.5), new Vector(26.5, 1, 26.5));
+                new Vector(7.5, 1, 20.5), new Vector(3.5, 1, 30.5), new Vector(11.5, 1, 30.5),
+                new Vector(7.5, 1, 40.5), new Vector(4.5, 1, 44.5), new Vector(3.5, 1, 52.5),
+                new Vector(11.5, 1, 52.5), new Vector(7.5, 1, 57.5));
         // Arenas have no exit button; one spot satisfies the RoomTemplate contract.
-        List<ButtonSpot> spots = List.of(new ButtonSpot(new BlockVector(0, 2, 20), BlockFace.EAST));
+        List<ButtonSpot> spots = List.of(new ButtonSpot(new BlockVector(0, 2, 30), BlockFace.EAST));
         return new GeneratedTemplate(PREFIX + "arena", TemplateType.ARENA, bp, entrance, spots, spawns);
     }
 }

@@ -11,20 +11,30 @@ package mc.jonomore.chutes.challenge.maze;
  * <p>Travel floor {@code t} (the order players visit floors in) is physical level {@code t} when
  * ascending (ladder) and {@code floors - 1 - t} when descending (chute).
  */
-public record MazeGeometry(int cells, int floors, boolean ascending) {
+public record MazeGeometry(int cellsX, int cellsZ, int floors, boolean ascending) {
+
+    /** A square maze, {@code cells} on each side. */
+    public MazeGeometry(int cells, int floors, boolean ascending) {
+        this(cells, cells, floors, ascending);
+    }
 
     public static final int PITCH = 3;
     public static final int LEVEL_HEIGHT = 4;
     public static final int AIR_LAYERS = LEVEL_HEIGHT - 1;
 
-    /** Largest cell count whose maze fits in a square footprint of {@code footprint} blocks. */
+    /** Largest cell count along one axis that fits in {@code footprint} blocks. */
     public static int maxCells(int footprint) {
         return (footprint - 1) / PITCH;
     }
 
-    /** Footprint width and depth in blocks. */
+    /** Footprint extent along x in blocks. */
     public int width() {
-        return cells * PITCH + 1;
+        return cellsX * PITCH + 1;
+    }
+
+    /** Footprint extent along z in blocks. */
+    public int depth() {
+        return cellsZ * PITCH + 1;
     }
 
     /** Height in blocks, bottom slab to roof inclusive. */
@@ -50,7 +60,7 @@ public record MazeGeometry(int cells, int floors, boolean ascending) {
     }
 
     public boolean inFootprint(int dx, int dz) {
-        return dx >= 0 && dz >= 0 && dx < width() && dz < width();
+        return dx >= 0 && dz >= 0 && dx < width() && dz < depth();
     }
 
     /**

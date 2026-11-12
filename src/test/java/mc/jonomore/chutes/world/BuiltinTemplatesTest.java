@@ -103,11 +103,14 @@ class BuiltinTemplatesTest {
             }
         }
         for (int y = 0; y < bp.sizeY(); y++) {
-            for (int i = 0; i < bp.sizeX(); i++) {
-                assertFalse(bp.isAir(i, y, 0) || bp.isAir(i, y, bp.sizeZ() - 1) || bp.isAir(0, y, i)
-                        || bp.isAir(bp.sizeX() - 1, y, i), "wall hole");
+            for (int x = 0; x < bp.sizeX(); x++) {
+                assertFalse(bp.isAir(x, y, 0) || bp.isAir(x, y, bp.sizeZ() - 1), "wall hole");
+            }
+            for (int z = 0; z < bp.sizeZ(); z++) {
+                assertFalse(bp.isAir(0, y, z) || bp.isAir(bp.sizeX() - 1, y, z), "wall hole");
             }
         }
         assertTrue(arena.size().getBlockX() <= 128 && arena.size().getBlockZ() <= 128);
+        assertTrue(arena.size().getBlockZ() >= 3 * arena.size().getBlockX(), "the arena should be a long hall");
     }
 }
